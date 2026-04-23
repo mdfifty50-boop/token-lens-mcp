@@ -3,6 +3,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import {
   auditContextBudget,
   optimizeToolLoading,
@@ -15,13 +18,34 @@ import {
   registerTool,
   logCall,
   getReport,
+  getStorageStats,
 } from './storage.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+const startTime = Date.now();
+let toolCallCount = 0;
+
+function wrap(fn) {
+  return async (...args) => {
+    toolCallCount++;
+    try { return await fn(...args); }
+    catch (e) { return { content: [{ type: 'text', text: JSON.stringify({ error: e.message }) }] }; }
+  };
+}
 
 const server = new McpServer({
   name: 'token-lens-mcp',
-  version: '0.1.0',
+  version: pkg.version,
   description: 'Analyze and optimize context window token usage — audit tool definitions, compress schemas, track usage, and reduce bloat',
 });
+
+server.tool('health_check', 'Returns server health, uptime, version, and storage stats', {},
+  async () => {
+    const storage = getStorageStats();
+    return { content: [{ type: 'text', text: JSON.stringify({ status: 'healthy', server: 'token-lens-mcp', version: pkg.version, uptime_seconds: Math.floor((Date.now() - startTime) / 1000), tool_calls_served: toolCallCount, storage }, null, 2) }] };
+  }
+);
 
 // ═══════════════════════════════════════════
 // TOOL: audit_context_budget
@@ -37,15 +61,9 @@ server.tool(
       schema: z.record(z.any()).describe('Tool input schema (JSON Schema object)'),
     })).describe('Array of tool definitions to audit'),
   },
-  async ({ tools }) => {
-    const result = auditContextBudget(tools);
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+  wrap(({ tools }) => {
+    return { content: [{ type: 'text', text: JSON.stringify(auditContextBudget(tools), null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
@@ -63,15 +81,9 @@ server.tool(
       category: z.string().optional().describe('Tool category (e.g., file-system, search, web, git, database, code, ai, monitoring, communication)'),
     })).describe('Array of available tools to filter'),
   },
-  async ({ task_description, available_tools }) => {
-    const result = optimizeToolLoading(task_description, available_tools);
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+  wrap(({ task_description, available_tools }) => {
+    return { content: [{ type: 'text', text: JSON.stringify(optimizeToolLoading(task_description, available_tools), null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
@@ -86,15 +98,9 @@ server.tool(
     schema: z.record(z.any()).describe('The JSON Schema to compress'),
     level: z.enum(['light', 'medium', 'aggressive']).describe('Compression level'),
   },
-  async ({ tool_name, schema, level }) => {
-    const result = compressSchema(tool_name, schema, level);
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+  wrap(({ tool_name, schema, level }) => {
+    return { content: [{ type: 'text', text: JSON.stringify(compressSchema(tool_name, schema, level), null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
@@ -110,7 +116,7 @@ server.tool(
     tool_name: z.string().optional().describe('Tool name (required for register_tool and log_call)'),
     tool_tokens: z.number().int().min(0).optional().describe('Token cost of the tool (for register_tool)'),
   },
-  async ({ session_id, action, tool_name, tool_tokens }) => {
+  wrap(({ session_id, action, tool_name, tool_tokens }) => {
     let result;
 
     switch (action) {
@@ -147,13 +153,8 @@ server.tool(
       }
     }
 
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
@@ -170,15 +171,9 @@ server.tool(
       last_used_days_ago: z.number().min(0).describe('Days since last use (0 = today)'),
     })).describe('Usage history for each tool'),
   },
-  async ({ usage_history }) => {
-    const result = suggestRemovals(usage_history);
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+  wrap(({ usage_history }) => {
+    return { content: [{ type: 'text', text: JSON.stringify(suggestRemovals(usage_history), null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
@@ -200,15 +195,9 @@ server.tool(
       last_used_days_ago: z.number().min(0).describe('Days since last use'),
     })).optional().describe('Optional usage history for removal analysis'),
   },
-  async ({ tools, usage_history }) => {
-    const result = getOptimizationReport(tools, usage_history);
-    return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
-    };
-  }
+  wrap(({ tools, usage_history }) => {
+    return { content: [{ type: 'text', text: JSON.stringify(getOptimizationReport(tools, usage_history), null, 2) }] };
+  })
 );
 
 // ═══════════════════════════════════════════
