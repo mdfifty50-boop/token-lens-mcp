@@ -1,0 +1,38 @@
+{
+  "name": "token-lens-mcp",
+  "version": "0.1.0",
+  "mcpName": "io.github.mdfifty50-boop/token-lens",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mdfifty50-boop/token-lens-mcp"
+  },
+  "description": "MCP server for analyzing and optimizing context window token usage — audit tool definitions, compress schemas, track usage, and reduce bloat",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "token-lens-mcp": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test src/**/*.test.js"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "token-optimization",
+    "context-window",
+    "schema-compression",
+    "tool-audit",
+    "token-budgeting",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  }
+}

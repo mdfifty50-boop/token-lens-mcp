@@ -1,0 +1,42 @@
+{
+  "serverInfo": {
+    "name": "token-lens-mcp",
+    "version": "0.1.0",
+    "description": "Analyze and optimize context window token usage — audit MCP tool definitions, compress schemas, track session usage, and reduce bloat",
+    "author": "THRONE AI",
+    "license": "MIT",
+    "homepage": "https://github.com/mdfifty50-boop/token-lens-mcp",
+    "repository": "https://github.com/mdfifty50-boop/token-lens-mcp"
+  },
+  "capabilities": {
+    "tools": [
+      { "name": "audit_context_budget", "description": "Analyze token cost of MCP tool definitions with context window percentages" },
+      { "name": "optimize_tool_loading", "description": "Recommend minimal tool set for a given task using keyword and category matching" },
+      { "name": "compress_schema", "description": "Compress verbose tool schemas at light/medium/aggressive levels" },
+      { "name": "analyze_session_usage", "description": "Track loaded vs actually-called tools per session with waste reports" },
+      { "name": "suggest_removals", "description": "Identify removal candidates from usage history (never used, stale, rare)" },
+      { "name": "get_optimization_report", "description": "Full context window health check with executive summary and projected savings" }
+    ],
+    "resources": [
+      { "uri": "token-lens://tips", "description": "Best practices for reducing MCP context window token bloat" }
+    ]
+  },
+  "categories": ["developer-tools", "optimization", "analytics", "context-management"],
+  "keywords": ["token-optimization", "context-window", "schema-compression", "mcp-tools", "tool-audit", "token-budgeting"],
+  "pricing": {
+    "free_tier": true,
+    "free_limit": "Unlimited local usage",
+    "pro": "$49/month — team dashboards, historical tracking, CI/CD integration"
+  },
+  "install": {
+    "npm": "npx token-lens-mcp",
+    "claude_desktop": {
+      "mcpServers": {
+        "token-lens": {
+          "command": "npx",
+          "args": ["token-lens-mcp"]
+        }
+      }
+    }
+  }
+}
